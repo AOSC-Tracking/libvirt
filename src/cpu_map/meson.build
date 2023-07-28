@@ -84,6 +84,8 @@ cpumap_data = [
   'x86_vendors.xml',
   'x86_Westmere-IBRS.xml',
   'x86_Westmere.xml',
+  'loongarch_vendors.xml',
+  'loongarch_la464.xml',
 ]
 
 install_data(cpumap_data, install_dir: pkgdatadir / 'cpu_map')
