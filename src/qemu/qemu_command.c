@@ -2924,6 +2924,7 @@ qemuBuildDomainForbidLegacyUSBController(const virDomainDef *def)
 {
     if (qemuDomainIsQ35(def) ||
         qemuDomainIsARMVirt(def) ||
+        qemuDomainIsLoongArchVirt(def) ||
         qemuDomainIsRISCVVirt(def))
         return true;
 
@@ -9223,9 +9224,11 @@ qemuChrIsPlatformDevice(const virDomainDef *def,
         }
     }
 
-    if (ARCH_IS_RISCV(def->os.arch)) {
+    if (ARCH_IS_RISCV(def->os.arch) ||
+        ARCH_IS_LOONGARCH(def->os.arch)) {
 
-        /* 16550a (used by riscv/virt guests) is a platform device */
+        /* 16550a (used by the virt machine type on some architectures)
+         * is a platform device */
         if (chr->deviceType == VIR_DOMAIN_CHR_DEVICE_TYPE_SERIAL &&
             chr->targetType == VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SYSTEM &&
             chr->targetModel == VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_16550A) {

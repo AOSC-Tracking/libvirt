@@ -4253,11 +4253,14 @@ qemuDomainDefAddDefaultDevices(virQEMUDriver *driver,
             addPCIRoot = true;
         break;
 
+    case VIR_ARCH_LOONGARCH64:
+        addPCIeRoot = true;
+        break;
+
     case VIR_ARCH_ARMV7B:
     case VIR_ARCH_CRIS:
     case VIR_ARCH_ITANIUM:
     case VIR_ARCH_LM32:
-    case VIR_ARCH_LOONGARCH64:
     case VIR_ARCH_M68K:
     case VIR_ARCH_MICROBLAZE:
     case VIR_ARCH_MICROBLAZEEL:
@@ -5428,6 +5431,7 @@ qemuDomainDefaultNetModel(const virDomainDef *def,
     /* When there are no backwards compatibility concerns getting in
      * the way, virtio is a good default */
     if (ARCH_IS_S390(def->os.arch) ||
+        qemuDomainIsLoongArchVirt(def) ||
         qemuDomainIsRISCVVirt(def)) {
         return VIR_DOMAIN_NET_MODEL_VIRTIO;
     }
@@ -5666,6 +5670,9 @@ qemuDomainControllerDefPostParse(virDomainControllerDef *cont,
                     cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI;
                 else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NEC_USB_XHCI))
                     cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI;
+            } else if (ARCH_IS_LOONGARCH(def->os.arch)) {
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QEMU_XHCI))
+                    cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI;
             }
         }
         /* forbid usb model 'qusb1' and 'qusb2' in this kind of hyperviosr */
@@ -5765,7 +5772,9 @@ qemuDomainChrDefPostParse(virDomainChrDef *chr,
             chr->targetType = VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_ISA;
         } else if (qemuDomainIsPSeries(def)) {
             chr->targetType = VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SPAPR_VIO;
-        } else if (qemuDomainIsARMVirt(def) || qemuDomainIsRISCVVirt(def)) {
+        } else if (qemuDomainIsARMVirt(def) ||
+                   qemuDomainIsLoongArchVirt(def) ||
+                   qemuDomainIsRISCVVirt(def)) {
             chr->targetType = VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SYSTEM;
         } else if (ARCH_IS_S390(def->os.arch)) {
             chr->targetType = VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SCLP;
@@ -5791,7 +5800,8 @@ qemuDomainChrDefPostParse(virDomainChrDef *chr,
         case VIR_DOMAIN_CHR_SERIAL_TARGET_TYPE_SYSTEM:
             if (qemuDomainIsARMVirt(def)) {
                 chr->targetModel = VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_PL011;
-            } else if (qemuDomainIsRISCVVirt(def)) {
+            } else if (qemuDomainIsLoongArchVirt(def) ||
+                       qemuDomainIsRISCVVirt(def)) {
                 chr->targetModel = VIR_DOMAIN_CHR_SERIAL_TARGET_MODEL_16550A;
             }
             break;
@@ -5963,6 +5973,7 @@ qemuDomainDefaultVideoDevice(const virDomainDef *def,
     if (ARCH_IS_PPC64(def->os.arch))
         return VIR_DOMAIN_VIDEO_TYPE_VGA;
     if (qemuDomainIsARMVirt(def) ||
+        qemuDomainIsLoongArchVirt(def) ||
         qemuDomainIsRISCVVirt(def) ||
         ARCH_IS_S390(def->os.arch)) {
         return VIR_DOMAIN_VIDEO_TYPE_VIRTIO;
@@ -8966,6 +8977,22 @@ qemuDomainMachineIsPSeries(const char *machine,
 
 
 static bool
+qemuDomainMachineIsLoongArchVirt(const char *machine,
+                                 const virArch arch)
+{
+    if (!ARCH_IS_LOONGARCH(arch))
+        return false;
+
+    if (STREQ(machine, "virt") ||
+        STRPREFIX(machine, "virt-")) {
+        return true;
+    }
+
+    return false;
+}
+
+
+static bool
 qemuDomainMachineIsMipsMalta(const char *machine,
                              const virArch arch)
 {
@@ -9059,6 +9086,13 @@ qemuDomainIsMipsMalta(const virDomainDef *def)
 
 
 bool
+qemuDomainIsLoongArchVirt(const virDomainDef *def)
+{
+    return qemuDomainMachineIsLoongArchVirt(def->os.machine, def->os.arch);
+}
+
+
+bool
 qemuDomainHasPCIRoot(const virDomainDef *def)
 {
     int root = virDomainControllerFind(def, VIR_DOMAIN_CONTROLLER_TYPE_PCI, 0);
@@ -9144,6 +9178,7 @@ qemuDomainSupportsPCIMultibus(const virDomainDef *def)
     /* In some cases, support for multibus is limited to some machine
      * types */
     if (qemuDomainIsARMVirt(def) ||
+        qemuDomainIsLoongArchVirt(def) ||
         qemuDomainIsRISCVVirt(def)) {
         return true;
     }
