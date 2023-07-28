@@ -544,7 +544,7 @@ virHostCPUParseFrequency(FILE *cpuinfo,
     char line[1024];
 
     /* No sensible way to retrieve CPU frequency */
-    if (ARCH_IS_ARM(arch))
+    if (ARCH_IS_ARM(arch) || ARCH_IS_LOONGARCH(arch))
         return 0;
 
     if (ARCH_IS_X86(arch))
@@ -579,7 +579,7 @@ virHostCPUParsePhysAddrSize(FILE *cpuinfo, unsigned int *addrsz)
         char *str;
         char *endptr;
 
-        if (!(str = STRSKIP(line, "address sizes")))
+        if (!(str = STRCASESKIP(line, "address sizes")))
             continue;
 
         /* Skip the colon. */

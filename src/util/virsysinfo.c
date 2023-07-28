@@ -1241,14 +1241,15 @@ virSysinfoRead(void)
 {
 #if defined(__powerpc__)
     return virSysinfoReadPPC();
-#elif defined(__arm__) || defined(__aarch64__)
+#elif defined(__arm__) || defined(__aarch64__) || defined(__loongarch__)
     return virSysinfoReadARM();
 #elif defined(__s390__) || defined(__s390x__)
     return virSysinfoReadS390();
 #elif !defined(WIN32) && \
     (defined(__x86_64__) || \
      defined(__i386__) || \
-     defined(__amd64__))
+     defined(__amd64__) || \
+    defined(__loongarch__))
     return virSysinfoReadDMI();
 #else /* WIN32 || not supported arch */
     /*
