@@ -2082,6 +2082,11 @@ bool virQEMUCapsHasPCIMultiBus(const virDomainDef *def)
         return true;
     }
 
+    /* loongarch64 support PCI-multibus on all machine types
+     * since forever */
+    if (ARCH_IS_LOONGARCH(def->os.arch))
+        return true;
+
     return false;
 }
 

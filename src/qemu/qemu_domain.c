@@ -5631,6 +5631,11 @@ qemuDomainControllerDefPostParse(virDomainControllerDef *cont,
                     cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI;
                 else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NEC_USB_XHCI))
                     cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI;
+            } else if (ARCH_IS_LOONGARCH(def->os.arch)) {
+                if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_DEVICE_QEMU_XHCI))
+                    cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_QEMU_XHCI;
+                else if (virQEMUCapsGet(qemuCaps, QEMU_CAPS_NEC_USB_XHCI))
+                    cont->model = VIR_DOMAIN_CONTROLLER_MODEL_USB_NEC_XHCI;
             }
         }
         /* forbid usb model 'qusb1' and 'qusb2' in this kind of hyperviosr */
@@ -8921,6 +8926,22 @@ qemuDomainMachineIsPSeries(const char *machine,
 
 
 static bool
+qemuDomainMachineIsLoongson(const char *machine,
+                            const virArch arch)
+{
+    if (!ARCH_IS_LOONGARCH(arch))
+        return false;
+
+    if (STREQ(machine, "virt") ||
+        STRPREFIX(machine, "virt-")) {
+        return true;
+    }
+
+    return false;
+}
+
+
+static bool
 qemuDomainMachineIsMipsMalta(const char *machine,
                              const virArch arch)
 {
@@ -9010,6 +9031,13 @@ bool
 qemuDomainIsMipsMalta(const virDomainDef *def)
 {
     return qemuDomainMachineIsMipsMalta(def->os.machine, def->os.arch);
+}
+
+
+bool
+qemuDomainIsLoongson(const virDomainDef *def)
+{
+    return qemuDomainMachineIsLoongson(def->os.machine, def->os.arch);
 }
 
 

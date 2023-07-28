@@ -2080,6 +2080,56 @@ qemuDomainValidateDevicePCISlotsQ35(virDomainDef *def,
 
 
 static int
+qemuDomainValidateDevicePCISlotsLoongson(virDomainDef *def,
+                                         virDomainPCIAddressSet *addrs)
+{
+    virPCIDeviceAddress tmp_addr;
+    g_autofree char *addrStr = NULL;
+    virDomainPCIConnectFlags flags = VIR_PCI_CONNECT_TYPE_PCI_DEVICE;
+
+    if (addrs->nbuses) {
+        memset(&tmp_addr, 0, sizeof(tmp_addr));
+        tmp_addr.slot = 1;
+        /* pci-ohci at 00:01.0 */
+        if (virDomainPCIAddressReserveAddr(addrs, &tmp_addr, flags, 0) < 0)
+            return -1;
+    }
+
+    if (def->nvideos > 0 &&
+        def->videos[0]->type != VIR_DOMAIN_VIDEO_TYPE_NONE &&
+        def->videos[0]->type != VIR_DOMAIN_VIDEO_TYPE_RAMFB) {
+        /* reserve slot 2 for vga device */
+        virDomainVideoDef *primaryVideo = def->videos[0];
+
+        if (virDeviceInfoPCIAddressIsWanted(&primaryVideo->info)) {
+            memset(&tmp_addr, 0, sizeof(tmp_addr));
+            tmp_addr.slot = 2;
+
+            if (!(addrStr = virPCIDeviceAddressAsString(&tmp_addr)))
+                return -1;
+            if (!virDomainPCIAddressValidate(addrs, &tmp_addr,
+                                             addrStr, flags, true))
+                return -1;
+
+            if (virDomainPCIAddressSlotInUse(addrs, &tmp_addr)) {
+                if (qemuDomainPCIAddressReserveNextAddr(addrs,
+                                                        &primaryVideo->info) < 0) {
+                    return -1;
+                }
+            } else {
+                if (virDomainPCIAddressReserveAddr(addrs, &tmp_addr, flags, 0) < 0)
+                    return -1;
+                primaryVideo->info.addr.pci = tmp_addr;
+                primaryVideo->info.type = VIR_DOMAIN_DEVICE_ADDRESS_TYPE_PCI;
+            }
+        }
+    }
+
+    return 0;
+}
+
+
+static int
 qemuDomainValidateDevicePCISlotsChipsets(virDomainDef *def,
                                          virDomainPCIAddressSet *addrs)
 {
@@ -2090,6 +2140,11 @@ qemuDomainValidateDevicePCISlotsChipsets(virDomainDef *def,
 
     if (qemuDomainIsQ35(def) &&
         qemuDomainValidateDevicePCISlotsQ35(def, addrs) < 0) {
+        return -1;
+    }
+
+    if (qemuDomainIsLoongson(def) &&
+        qemuDomainValidateDevicePCISlotsLoongson(def, addrs) < 0) {
         return -1;
     }
 
