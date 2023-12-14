@@ -1139,7 +1139,8 @@ virQEMUCapsInitGuestFromBinary(virCaps *caps,
                                       NULL, NULL, 0, NULL);
     }
 
-    if ((ARCH_IS_X86(guestarch) || guestarch == VIR_ARCH_AARCH64))
+    if ((ARCH_IS_X86(guestarch) || guestarch == VIR_ARCH_AARCH64 ||
+        ARCH_IS_LOONGARCH(guestarch)))
         virCapabilitiesAddGuestFeatureWithToggle(guest, VIR_CAPS_GUEST_FEATURE_TYPE_ACPI,
                                                  true, true);
 
